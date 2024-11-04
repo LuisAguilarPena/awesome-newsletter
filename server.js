@@ -23,7 +23,11 @@ let upload = multer({
     s3: s3,
     bucket: process.env.AWS_S3_BUCKET,
     key: function (req, file, cb) {
-      cb(null, Date.now() + "-" + file.originalname)
+      const time = new Date()
+      cb(
+        null,
+        time.toLocaleDateString().replaceAll("/", "") + "-" + file.originalname, // ex 11/4/2024 -> 1142024-File
+      )
     },
   }),
 }).single("file")
