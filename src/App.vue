@@ -1,5 +1,5 @@
 <script setup>
-import HelloWorld from "./components/HelloWorld.vue"
+// import HelloWorld from "./components/HelloWorld.vue"
 import FileUpload from "./components/FileUpload.vue"
 </script>
 
@@ -26,7 +26,7 @@ import FileUpload from "./components/FileUpload.vue"
       />
     </a>
   </div>
-  <HelloWorld msg="Vite + Vue" />
+  <!-- <HelloWorld msg="Vite + Vue" /> -->
   <FileUpload />
 </template>
 

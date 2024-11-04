@@ -1,11 +1,25 @@
-//! Better understand this section
+//! Better understand this section //TODO properly center input
 <template>
   <div>
+    <h2>Upload Latest newsletter</h2>
+    <label
+      for="newsletter-upload"
+      class="custom-file-upload"
+    >
+      Select Newsletter File
+    </label>
     <input
+      id="newsletter-upload"
       type="file"
       @change="uploadFile"
+      style="display: none"
     />
-    <p v-if="message">{{ message }}</p>
+    <p
+      id="upload-msg"
+      v-if="message"
+    >
+      {{ message }}
+    </p>
   </div>
 </template>
 
@@ -17,8 +31,9 @@ const message = ref("")
 
 //! Better understand this section
 const uploadFile = async event => {
+  const newsletterUpload = document.getElementById("newsletter-upload")
   const file = event.target.files[0]
-  const formData = new FormData()
+  const formData = new FormData() // {}
   formData.append("file", file)
 
   try {
@@ -34,6 +49,18 @@ const uploadFile = async event => {
     message.value = response.data
   } catch (error) {
     message.value = "File upload failed."
+  } finally {
+    newsletterUpload.value = "" // clear input to be ready for next possible upload
   }
 }
 </script>
+
+//TODO improve styles if time allows
+<style scoped>
+.custom-file-upload {
+  border: 1px solid #ccc;
+  display: inline-block;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+</style>
