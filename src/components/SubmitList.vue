@@ -1,0 +1,58 @@
+<template>
+  <div>
+    <h2>Submit List of Recipients</h2>
+    <textarea
+      v-model="emailList"
+      placeholder="
+  Submit an email list of recipients for the newsletter, for example: 
+  abc@domain.com,zxy@domain.com,cba@domain.com,lorem@domain.com,...
+  "
+      cols="100"
+      rows="5"
+      style="text-align: center"
+      value="abc@domain.com"
+    ></textarea>
+    <button
+      id="submit-btn"
+      @click="submitEmails"
+      style="display: block; margin: 1rem auto;"
+    >
+      Submit
+    </button>
+    <p
+      id="submit-msg"
+      v-if="message"
+    >
+      {{ message }}
+    </p>
+  </div>
+</template>
+
+<script>
+import axios from "axios"
+
+export default {
+  data() {
+    return {
+      emailList: "",
+      message: "",
+    }
+  },
+  methods: {
+    async submitEmails() {
+      if (!this.emailList.length > 0) {
+        return (this.message = "Empty email list")
+      }
+
+      try {
+        const response = await axios.post("http://localhost:3000/submit", {
+          emails: this.emailList.trim().split(","), //TODO add better validation, and headers?
+        })
+        this.message = response.data
+      } catch (err) {
+        this.message = err.response.data
+      }
+    },
+  },
+}
+</script>

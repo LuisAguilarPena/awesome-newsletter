@@ -4,7 +4,7 @@ import { S3Client } from "@aws-sdk/client-s3"
 import multer from "multer"
 import multerS3 from "multer-s3"
 import cors from "cors"
-import { writeFileSync, readFileSync } from 'node:fs'
+import { writeFileSync, readFileSync, writeFile } from "node:fs"
 
 dotenv.config()
 const app = express()
@@ -35,11 +35,44 @@ app.post("/upload", upload, (req, res) => {
   res.send(`File uploaded successfully. ${url}`)
 
   //TODO mock writing to DB
-  const staleNewslettersJSON = readFileSync("./mockedDB/collections/newsletters.json")
+  const staleNewslettersJSON = readFileSync(
+    "./mockedDB/collections/newsletters.json",
+  )
   const staleNewsletters = JSON.parse(staleNewslettersJSON)
   const newsletters = staleNewsletters
-  newsletters.push({name: url.match(/([^\/]+)(?=[^\/]*\/?$)/), url: url})
-  writeFileSync("./mockedDB/collections/newsletters.json", JSON.stringify(newsletters))
+  newsletters.push({ name: url.match(/([^\/]+)(?=[^\/]*\/?$)/), url: url })
+  writeFileSync(
+    "./mockedDB/collections/newsletters.json",
+    JSON.stringify(newsletters),
+  )
+})
+
+app.use(express.json())
+
+app.post("/submit", (req, res) => {
+  //TODO check for better ways to validate email address
+  const emails = req.body.emails.filter(email =>
+    email.match(/^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/),
+  )
+
+  if(!emails.length > 0) {
+    return res.status(500).send("Error writing file")
+  }
+
+  const staleEmailsJSON = readFileSync("./mockedDB/collections/emails.json")
+  const staleEmails = JSON.parse(staleEmailsJSON)
+  const uniqueTotalEmails = new Set(staleEmails.concat(emails))
+  const emailsJSON = JSON.stringify([...uniqueTotalEmails])
+
+  //TODO mock writing to DB
+  writeFile("./mockedDB/collections/emails.json", emailsJSON, err => {
+    if (err) {
+      res.status(500).send("Error writing file")
+    } else {
+      // 204 No Content if it does not return the updated resource
+      res.status(204).send("Email list saved successfully")
+    }
+  })
 })
 
 app.listen(3000, () => {

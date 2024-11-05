@@ -34,7 +34,7 @@ const uploadFile = async event => {
   const newsletterUpload = document.getElementById("newsletter-upload")
   const file = event.target.files[0]
   const formData = new FormData() // {}
-  formData.append("file", file)
+  formData.append("file", file) // TODO file validation
 
   try {
     const response = await axios.post(

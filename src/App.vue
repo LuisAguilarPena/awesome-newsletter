@@ -1,6 +1,7 @@
 <script setup>
 // import HelloWorld from "./components/HelloWorld.vue"
 import FileUpload from "./components/FileUpload.vue"
+import SubmitList from "./components/SubmitList.vue";
 </script>
 
 <template>
@@ -28,6 +29,7 @@ import FileUpload from "./components/FileUpload.vue"
   </div>
   <!-- <HelloWorld msg="Vite + Vue" /> -->
   <FileUpload />
+  <SubmitList />
 </template>
 
 <style scoped>
