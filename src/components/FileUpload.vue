@@ -11,12 +11,12 @@
     <input
       id="newsletter-upload"
       type="file"
-      @change="uploadFile"
       style="display: none"
+      @change="uploadFile"
     />
     <p
-      id="upload-msg"
       v-if="message"
+      id="upload-msg"
     >
       {{ message }}
     </p>

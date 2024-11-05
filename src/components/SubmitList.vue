@@ -13,14 +13,14 @@
     ></textarea>
     <button
       id="submit-btn"
-      @click="submitEmails"
       style="display: block; margin: 1rem auto"
+      @click="submitEmails"
     >
       Submit
     </button>
     <p
+    v-if="message"
       id="submit-msg"
-      v-if="message"
     >
       {{ message }}
     </p>
@@ -46,7 +46,7 @@ export default {
         const response = await axios.post("http://localhost:3000/submit", {
           emails: this.emailList.replaceAll(" ", "").split(","), //TODO add better validation, and headers?
         })
-        this.message = response.data
+        this.message = response.data || "Recipient Submitted!" //TODO message from response.data not showing
       } catch (err) {
         this.message = err.response.data
       }
