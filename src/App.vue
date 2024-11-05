@@ -1,7 +1,8 @@
 <script setup>
 // import HelloWorld from "./components/HelloWorld.vue"
 import FileUpload from "./components/FileUpload.vue"
-import SubmitList from "./components/SubmitList.vue";
+import SubmitList from "./components/SubmitList.vue"
+import SendNewsletter from "./components/SendNewsletter.vue"
 </script>
 
 <template>
@@ -30,6 +31,7 @@ import SubmitList from "./components/SubmitList.vue";
   <!-- <HelloWorld msg="Vite + Vue" /> -->
   <FileUpload />
   <SubmitList />
+  <SendNewsletter />
 </template>
 
 <style scoped>

@@ -5,6 +5,8 @@ import multer from "multer"
 import multerS3 from "multer-s3"
 import cors from "cors"
 import { writeFileSync, readFileSync, writeFile } from "node:fs"
+import nodemailer from "nodemailer"
+import { subscribe } from "node:diagnostics_channel"
 
 dotenv.config()
 const app = express()
@@ -55,7 +57,7 @@ app.post("/submit", (req, res) => {
     email.match(/^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/),
   )
 
-  if(!emails.length > 0) {
+  if (!emails.length > 0) {
     return res.status(500).send("Error writing file")
   }
 
@@ -72,6 +74,42 @@ app.post("/submit", (req, res) => {
       // 204 No Content if it does not return the updated resource
       res.status(204).send("Email list saved successfully")
     }
+  })
+})
+
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: true, // to use TLS
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+})
+
+app.post("/send", (req, res) => {
+  const subsListJSON = readFileSync("./mockedDB/collections/emails.json")
+  const subsList = JSON.parse(subsListJSON)
+  console.log("server subsListJSON: ", subsList)
+
+  subsList.forEach(subscriber => {
+    transporter.sendMail(
+      {
+        to: subscriber, //TODO change to object with email, names, etc. for customization, could also apply to newletter.json
+        //TODO this can be improve creating a dynamic template flow
+        subject: "Newsletter for Monday, November 04 2024",
+        html: "<div style='text-align: center'><h2>This are the news that matter to you!</h2><p>Find the full newsletter in this email's attachments.</p></div>",
+      },
+      (err, info) => {
+        if (err) {
+          console.log("Server Error while sending Newsletter to: ", subscriber, " ", err) //TODO for security purposes might be useful to not log emails
+          res.status(500).send("Error sending Newsletter")
+        } else {
+          console.log("Newsletter sent to: ", subscriber, " ", info.response)
+          res.status(200).send("Newsletter sent successfully")
+        }
+      },
+    )
   })
 })
 

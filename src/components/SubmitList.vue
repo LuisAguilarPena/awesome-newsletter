@@ -42,7 +42,6 @@ export default {
       if (!this.emailList.length > 0) {
         return (this.message = "Empty email list")
       }
-      console.log(this.emailList.replaceAll(" ", "").split(","));
       try {
         const response = await axios.post("http://localhost:3000/submit", {
           emails: this.emailList.replaceAll(" ", "").split(","), //TODO add better validation, and headers?

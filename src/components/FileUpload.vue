@@ -1,7 +1,7 @@
 //! Better understand this section //TODO properly center input
 <template>
   <div>
-    <h2>Upload Latest newsletter</h2>
+    <h2>Upload Latest Newsletter</h2>
     <label
       for="newsletter-upload"
       class="custom-file-upload"
@@ -34,7 +34,7 @@ const uploadFile = async event => {
   const newsletterUpload = document.getElementById("newsletter-upload")
   const file = event.target.files[0]
   const formData = new FormData() // {}
-  formData.append("file", file) // TODO file validation
+  formData.append("file", file) // TODO file type validation
 
   try {
     const response = await axios.post(
