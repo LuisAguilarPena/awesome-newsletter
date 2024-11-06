@@ -48,7 +48,7 @@ const uploadFile = async event => {
     )
     message.value = response.data
   } catch (error) {
-    message.value = "File upload failed."
+    message.value = "File upload failed"
   } finally {
     newsletterUpload.value = "" // clear input to be ready for next possible upload
   }

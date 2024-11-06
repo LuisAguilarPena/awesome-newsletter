@@ -1,118 +1,73 @@
 import express from "express"
-import dotenv from "dotenv"
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
-import multer from "multer"
-import multerS3 from "multer-s3"
 import cors from "cors"
-import { writeFileSync, readFileSync, writeFile } from "node:fs"
-import nodemailer from "nodemailer"
-import { removeItemFromArrayOnce } from "./utils.js";
+import {
+  removeItemFromArrayOnce,
+  uploadToS3,
+  getS3Object,
+  readJsonAndParse,
+  writeFileToMockDb,
+  transporter,
+} from "./utils.js"
 
-dotenv.config()
 const app = express()
-
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-})
-
-//! Better understand this section
-let upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: process.env.AWS_S3_BUCKET,
-    key: function (req, file, cb) {
-      cb(null, Date.now() + "-" + file.originalname)
-    },
-  }),
-}).single("file")
-
 app.use(cors())
+app.use(express.json()) // helps to read req.body
 
-app.post("/upload", upload, (req, res) => {
+app.post("/upload", uploadToS3, (req, res) => {
   const url = req.file.location
-  res.send(`File uploaded successfully. ${url}`)
 
-  //TODO mock writing to DB
-  const staleNewslettersJSON = readFileSync(
+  const newsletters = readJsonAndParse(
     "./mockedDB/collections/newsletters.json",
   )
-  const staleNewsletters = JSON.parse(staleNewslettersJSON)
-  const newsletters = staleNewsletters
   newsletters.push({ name: url.match(/([^/]+)(?=[^/]*\/?$)/)[0], url: url })
-  writeFileSync(
+
+  return writeFileToMockDb(
     "./mockedDB/collections/newsletters.json",
-    JSON.stringify(newsletters),
+    newsletters,
+    res,
+    "Error writing file entry to mockDB Collection",
+    "File uploaded successfully",
   )
 })
-
-app.use(express.json())
 
 app.post("/submit", (req, res) => {
-  //TODO check for better ways to validate email address
   const emails = req.body.emails.filter(email =>
     email.match(/^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/),
   )
 
   if (!emails.length > 0) {
-    return res.status(500).send("Error writing file")
+    return res
+      .status(500)
+      .send("Recipient list does not have a valid email address")
   }
 
-  const staleEmailsJSON = readFileSync("./mockedDB/collections/emails.json")
-  const staleEmails = JSON.parse(staleEmailsJSON)
+  const staleEmails = readJsonAndParse("./mockedDB/collections/emails.json")
   const uniqueTotalEmails = new Set(staleEmails.concat(emails))
-  const emailsJSON = JSON.stringify([...uniqueTotalEmails])
+  const emailsArr = [...uniqueTotalEmails]
 
-  //TODO mock writing to DB
-  writeFile("./mockedDB/collections/emails.json", emailsJSON, err => {
-    if (err) {
-      return res.status(500).send("Error writing file")
-    } else {
-      return res.status(204).send("Email list saved successfully")
-    }
-  })
-})
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: true, // to use TLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+  return writeFileToMockDb(
+    "./mockedDB/collections/emails.json",
+    emailsArr,
+    res,
+    "Error saving recipient list",
+    "Recipient list saved successfully",
+  )
 })
 
 app.post("/send", async (req, res) => {
-  const subsListJSON = readFileSync("./mockedDB/collections/emails.json")
-  const subsList = JSON.parse(subsListJSON)
-
-  const staleNewslettersJSON = readFileSync(
+  const subsList = readJsonAndParse("./mockedDB/collections/emails.json")
+  const staleNewsletters = readJsonAndParse(
     "./mockedDB/collections/newsletters.json",
   )
-  const staleNewsletters = JSON.parse(staleNewslettersJSON)
 
-  async function getS3Object() {
-    const params = {
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: staleNewsletters[staleNewsletters.length - 1].name, // filename
-    }
+  const s3Object = await getS3Object(
+    staleNewsletters[staleNewsletters.length - 1].name,
+  )
 
-    const command = new GetObjectCommand(params)
-
-    try {
-      const data = await s3.send(command)
-      console.log("Retrieved the latest newsletter")
-      return data.Body
-    } catch (err) {
-      console.log("Error while retrieving the latest newsletter", err)
-    }
+  if (!s3Object) {
+    return res.status(500).send("Error while retrieving the latest newsletter")
   }
 
-  const s3Object = await getS3Object()
   const date = new Date()
   const subjectDate = date.toLocaleDateString("en-US", {
     weekday: "long",
@@ -122,13 +77,14 @@ app.post("/send", async (req, res) => {
   })
   const attachmentDate = date.toLocaleDateString("en-US").replaceAll("/", "-")
 
+  let failRejectCounter = 0
+  const unreachableSubs = []
+
   subsList.forEach(subscriber => {
     transporter.sendMail(
       {
-        //TODO change to object with email, names, etc. for customization, could also apply to newletter.json
         to: subscriber,
         subject: `Awesome Newsletter for ${subjectDate}`,
-        //TODO this can be improve creating a dynamic template flow for HTML bodies
         html: `<div style='text-align: center'><h2>This are the news that matter to you!</h2><p>Find the full newsletter in this email's attachments.</p><div><a href='http://localhost:3000/unsubscribe?email=${subscriber}'>Unsubscribe</a></div></div>`,
         attachments: [
           {
@@ -141,42 +97,48 @@ app.post("/send", async (req, res) => {
       (err, info) => {
         if (err) {
           /* eslint-disable no-console */
-          console.log(
-            "Server Error while sending Newsletter to: ",
-            subscriber,
-            " ",
-            err,
-          ) //TODO for security purposes might be useful to not log emails
-          res.status(500).send("Error sending Newsletter")
+          console.log("Message failed for: ", subscriber)
+          failRejectCounter++
+          unreachableSubs.push(subscriber)
         } else {
-          /* eslint-disable no-console */
-          // console.log("Newsletter sent to: ", subscriber, " ", info.response)
-          res.status(200).send("Newsletter sent successfully")
+          if (info.rejected.length !== 0) {
+            /* eslint-disable no-console */
+            console.log("Message rejected by: ", subscriber)
+            failRejectCounter++
+            unreachableSubs.push(subscriber)
+          }
         }
       },
     )
   })
+
+  if (failRejectCounter > 0 && failRejectCounter !== subsList.length) {
+    /* eslint-disable no-console */
+    console.log("unreachableSubs: ", unreachableSubs)
+    return res.status(200).send("Some Newsletters sent successfully")
+  } else if (failRejectCounter === subsList.length) {
+    res.status(500).send("Error sending Newsletters")
+  } else if (failRejectCounter === 0) {
+    return res.status(200).send("All Newsletters sent successfully")
+  }
 })
 
 app.get("/unsubscribe", async (req, res) => {
   const email = req.query.email
-  
-  if(!email) return res.status(400).send('Invalid request')
-  
-  const staleEmailsJSON = readFileSync("./mockedDB/collections/emails.json")
-  const staleEmails = JSON.parse(staleEmailsJSON)
-  
-  removeItemFromArrayOnce(staleEmails, email)
-  
-  console.log("--> ", email, staleEmails)
 
-  writeFile("./mockedDB/collections/emails.json", JSON.stringify(staleEmails), err => {
-    if (err) {
-      return res.status(500).send("Error unsubscribing from newsletter")
-    } else {
-      return res.status(204).send("Unsubscribed")
-    }
-  })
+  if (!email) return res.status(400).send("Invalid request")
+
+  const staleEmails = readJsonAndParse("./mockedDB/collections/emails.json")
+
+  removeItemFromArrayOnce(staleEmails, email)
+
+  writeFileToMockDb(
+    "./mockedDB/collections/emails.json",
+    staleEmails,
+    res,
+    "Error unsubscribing from newsletter",
+    "Unsubscribed",
+  )
 })
 
 app.listen(3000, () => {

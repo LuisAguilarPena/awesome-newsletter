@@ -40,7 +40,7 @@ export default {
   methods: {
     async submitEmails() {
       if (!this.emailList.length > 0) {
-        return (this.message = "Empty email list")
+        return (this.message = "Empty recipient list")
       }
       try {
         const response = await axios.post("http://localhost:3000/submit", {
