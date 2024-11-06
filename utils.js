@@ -33,22 +33,6 @@ export const uploadToS3 = multer({
   }),
 }).single("file")
 
-export async function getS3Object(key) {
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET,
-    Key: key, // filename or object name
-  }
-
-  const command = new GetObjectCommand(params)
-
-  try {
-    const data = await s3.send(command)
-    return data.Body
-  } catch (err) {
-    return null
-  }
-}
-
 export function readJsonAndParse(path) {
   return JSON.parse(readFileSync(path))
 }
@@ -67,7 +51,7 @@ export function writeFileToMockDb(path, arr, res, errorMsg, successMsg) {
   )
 }
 
-export const transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
   secure: true, // to use TLS
@@ -76,3 +60,106 @@ export const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 })
+
+export async function getS3Object(key) {
+  const params = {
+    Bucket: process.env.AWS_S3_BUCKET,
+    Key: key, // filename or object name
+  }
+
+  const command = new GetObjectCommand(params)
+
+  try {
+    const data = await s3.send(command)
+    return data.Body
+  } catch (err) {
+    return null
+  }
+}
+
+export async function sendNewsletter(res) {
+  const subsList = readJsonAndParse("./mockedDB/collections/emails.json")
+  const staleNewsletters = readJsonAndParse(
+    "./mockedDB/collections/newsletters.json",
+  )
+
+  if (subsList.length === 0 || staleNewsletters.length === 0) {
+    return res.status(500).send("There are no subscribers or newsletters yet")
+  }
+
+  const s3Object = await getS3Object(
+    staleNewsletters[staleNewsletters.length - 1].name,
+  )
+
+  if (!s3Object) {
+    return res.status(500).send("Error while retrieving the latest newsletter")
+  }
+
+  const failures = sendEmail(subsList, s3Object)
+
+  if (failures.failRejectCounter > 0 && failures.failRejectCounter !== subsList.length) {
+    /* eslint-disable no-console */
+    console.log("unreachableSubs: ", failures.unreachableSubs)
+    return res.status(200).send("Some Newsletters sent successfully")
+  } else if (failures.failRejectCounter === subsList.length) {
+    res.status(500).send("Error sending Newsletters")
+  } else if (failures.failRejectCounter === 0) {
+    return res.status(200).send("All Newsletters sent successfully")
+  }
+}
+
+export function sendEmail(subsList, s3Object) {
+  const date = new Date()
+  const subjectDate = date.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+  const attachmentDate = date.toLocaleDateString("en-US").replaceAll("/", "-")
+
+  let failRejectCounter = 0
+  const unreachableSubs = []
+
+  subsList.forEach(subscriber => {
+    transporter.sendMail(
+      {
+        to: subscriber,
+        subject: `Awesome Newsletter for ${subjectDate}`,
+        html: 
+          `<div style='text-align: center'>
+            <h2>This are the news that matter to you!</h2>
+            <p>Find the full newsletter in this email's attachments.</p>
+            <div><a href='http://localhost:3000/unsubscribe?email=${subscriber}'>Unsubscribe</a></div>
+          </div>`,
+        attachments: [
+          {
+            filename: `${attachmentDate}-Awesome-Newsletter.pdf`,
+            content: s3Object,
+            contentType: "application/pdf",
+          },
+        ],
+      },
+      (err, info) => {
+        if (err) {
+          /* eslint-disable no-console */
+          console.log("Message failed for: ", subscriber)
+          failRejectCounter++
+          unreachableSubs.push(subscriber)
+        } else {
+          if (info.rejected.length !== 0) {
+            /* eslint-disable no-console */
+            console.log("Message rejected by: ", subscriber)
+            failRejectCounter++
+            unreachableSubs.push(subscriber)
+          }
+        }
+      },
+    )
+  })
+
+  return {
+    failRejectCounter,
+    unreachableSubs
+  }
+}
