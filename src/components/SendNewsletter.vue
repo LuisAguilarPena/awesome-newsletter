@@ -3,8 +3,8 @@
     <h2>Send Newsletter to All Subscribers</h2>
     <button @click="sendNewsletter">Send</button>
     <p
-      id="upload-msg"
       v-if="message"
+      id="upload-msg"
     >
       {{ message }}
     </p>

@@ -6,7 +6,8 @@ import multerS3 from "multer-s3"
 import cors from "cors"
 import { writeFileSync, readFileSync, writeFile } from "node:fs"
 import nodemailer from "nodemailer"
-import { subscribe } from "node:diagnostics_channel"
+import path from "node:path"
+import { Buffer } from "node:buffer"
 
 dotenv.config()
 const app = express()
@@ -42,7 +43,7 @@ app.post("/upload", upload, (req, res) => {
   )
   const staleNewsletters = JSON.parse(staleNewslettersJSON)
   const newsletters = staleNewsletters
-  newsletters.push({ name: url.match(/([^\/]+)(?=[^\/]*\/?$)/), url: url })
+  newsletters.push({ name: url.match(/([^/]+)(?=[^/]*\/?$)/), url: url })
   writeFileSync(
     "./mockedDB/collections/newsletters.json",
     JSON.stringify(newsletters),
@@ -69,10 +70,10 @@ app.post("/submit", (req, res) => {
   //TODO mock writing to DB
   writeFile("./mockedDB/collections/emails.json", emailsJSON, err => {
     if (err) {
-      res.status(500).send("Error writing file")
+      return res.status(500).send("Error writing file")
     } else {
       // 204 No Content if it does not return the updated resource
-      res.status(204).send("Email list saved successfully")
+      return res.send("Email list saved successfully")
     }
   })
 })
@@ -90,7 +91,20 @@ const transporter = nodemailer.createTransport({
 app.post("/send", (req, res) => {
   const subsListJSON = readFileSync("./mockedDB/collections/emails.json")
   const subsList = JSON.parse(subsListJSON)
-  console.log("server subsListJSON: ", subsList)
+
+  // async function getS3Object(bucket, key) {
+  //   const params = {
+  //     Bucket: bucket,
+  //     Key: key
+  //   };
+  
+  //   const data = await s3.getObject(params).promise();
+  //   return data.Body;
+  // }
+
+  const pdf = readFileSync("1.pdf")
+
+  console.log("__>", pdf);
 
   subsList.forEach(subscriber => {
     transporter.sendMail(
@@ -99,13 +113,32 @@ app.post("/send", (req, res) => {
         //TODO this can be improve creating a dynamic template flow
         subject: "Newsletter for Monday, November 04 2024",
         html: "<div style='text-align: center'><h2>This are the news that matter to you!</h2><p>Find the full newsletter in this email's attachments.</p></div>",
+        attachments: [
+          {
+            filename: "TestAttachement",
+            content: Buffer.from(pdf),
+            // path: path.join(
+            //   __dirname,
+            //   "/1730834376484-Fullstack_Engineer.pdf",
+            // ),
+            // href: "https://newletters-assets.s3.us-east-1.amazonaws.com/1730834376484-Fullstack_Engineer.pdf",
+            contentType: "application/pdf",
+          },
+        ],
       },
       (err, info) => {
         if (err) {
-          console.log("Server Error while sending Newsletter to: ", subscriber, " ", err) //TODO for security purposes might be useful to not log emails
+          /* eslint-disable no-console */
+          console.log(
+            "Server Error while sending Newsletter to: ",
+            subscriber,
+            " ",
+            err,
+          ) //TODO for security purposes might be useful to not log emails
           res.status(500).send("Error sending Newsletter")
         } else {
-          console.log("Newsletter sent to: ", subscriber, " ", info.response)
+          /* eslint-disable no-console */
+          // console.log("Newsletter sent to: ", subscriber, " ", info.response)
           res.status(200).send("Newsletter sent successfully")
         }
       },
@@ -114,5 +147,6 @@ app.post("/send", (req, res) => {
 })
 
 app.listen(3000, () => {
+  /* eslint-disable no-console */
   console.log("Server is up on http://localhost:3000")
 })
