@@ -60,6 +60,10 @@ app.post("/send", async (req, res) => {
     "./mockedDB/collections/newsletters.json",
   )
 
+  if (subsList.length === 0 || staleNewsletters.length === 0) {
+    return res.status(500).send("There are no subscribers or newsletters yet")
+  }
+
   const s3Object = await getS3Object(
     staleNewsletters[staleNewsletters.length - 1].name,
   )
