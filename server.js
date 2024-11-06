@@ -89,7 +89,12 @@ app.post("/send", async (req, res) => {
       {
         to: subscriber,
         subject: `Awesome Newsletter for ${subjectDate}`,
-        html: `<div style='text-align: center'><h2>This are the news that matter to you!</h2><p>Find the full newsletter in this email's attachments.</p><div><a href='http://localhost:3000/unsubscribe?email=${subscriber}'>Unsubscribe</a></div></div>`,
+        html: 
+          `<div style='text-align: center'>
+            <h2>This are the news that matter to you!</h2>
+            <p>Find the full newsletter in this email's attachments.</p>
+            <div><a href='http://localhost:3000/unsubscribe?email=${subscriber}'>Unsubscribe</a></div>
+          </div>`,
         attachments: [
           {
             filename: `${attachmentDate}-Awesome-Newsletter.pdf`,
