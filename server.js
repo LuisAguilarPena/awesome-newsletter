@@ -6,6 +6,7 @@ import multerS3 from "multer-s3"
 import cors from "cors"
 import { writeFileSync, readFileSync, writeFile } from "node:fs"
 import nodemailer from "nodemailer"
+import { removeItemFromArrayOnce } from "./utils.js";
 
 dotenv.config()
 const app = express()
@@ -128,7 +129,7 @@ app.post("/send", async (req, res) => {
         to: subscriber,
         subject: `Awesome Newsletter for ${subjectDate}`,
         //TODO this can be improve creating a dynamic template flow for HTML bodies
-        html: "<div style='text-align: center'><h2>This are the news that matter to you!</h2><p>Find the full newsletter in this email's attachments.</p></div>",
+        html: `<div style='text-align: center'><h2>This are the news that matter to you!</h2><p>Find the full newsletter in this email's attachments.</p><div><a href='http://localhost:3000/unsubscribe?email=${subscriber}'>Unsubscribe</a></div></div>`,
         attachments: [
           {
             filename: `${attachmentDate}-Awesome-Newsletter.pdf`,
@@ -154,6 +155,27 @@ app.post("/send", async (req, res) => {
         }
       },
     )
+  })
+})
+
+app.get("/unsubscribe", async (req, res) => {
+  const email = req.query.email
+  
+  if(!email) return res.status(400).send('Invalid request')
+  
+  const staleEmailsJSON = readFileSync("./mockedDB/collections/emails.json")
+  const staleEmails = JSON.parse(staleEmailsJSON)
+  
+  removeItemFromArrayOnce(staleEmails, email)
+  
+  console.log("--> ", email, staleEmails)
+
+  writeFile("./mockedDB/collections/emails.json", JSON.stringify(staleEmails), err => {
+    if (err) {
+      return res.status(500).send("Error unsubscribing from newsletter")
+    } else {
+      return res.status(204).send("Unsubscribed")
+    }
   })
 })
 
