@@ -23,8 +23,7 @@ export default {
   methods: {
     async sendNewsletter() {
       try {
-        const response = await axios.post("http://localhost:3000/send", {
-        })
+        const response = await axios.post("http://localhost:3000/send")
         this.message = response.data
       } catch (err) {
         this.message = err.response.data
