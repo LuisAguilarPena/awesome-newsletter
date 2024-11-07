@@ -81,7 +81,10 @@ This project is a newsletter sending app. WIP, for showcase purposes, not intend
 
 Project is expected to be run locally in order to have everything working as expected. There is no plan to deploy it to a production environment.
 
-For this project, **Vite** was used to set up our project, as it is one of the most popular and liked build tools according to [The State of JS 2022](https://2022.stateofjs.com/). Vite also makes it easy to set up a modern fullstack project, while still making it possible to extend the configuration later, if needed.
+For this project, **Vite** was used to set up our project, as it is one of the most popular and liked build tools according to [The State of JS 2022](https://2022.stateofjs.com/). Vite also makes it easy to set up a modern fullstack project, while still making it possible to extend the configuration later, if needed. It consists of two major parts:
+
+- A dev server that provides rich feature enhancements over native ES modules, e.g. Hot Module Replacement (HMR).
+- A build command that bundles your code with Rollup, pre-configured to output highly optimized static assets for production.
 
 Multer is a body parsing middleware that handles content type multipart/form-data. That means it parses the raw http request data which are primarily used for file upload, and makes it more accessible (storing on disk / in memory /...) for further processing. Without multer, you would have to parse the raw data yourself if you want to access the file.
 
@@ -274,4 +277,4 @@ A quick look at the top-level files and directories you'll see in the project.
 - Mechanism to save error logs for the server
 - Since I'm fairly new to working with Vue, I will read up and create a more robust UI
 - Migrate to MongoDB
-- Dockerize app
+- Set up husky and lint staged to add a pre commit hook to run linters and establish a commit message template
