@@ -272,9 +272,32 @@ A quick look at the top-level files and directories you'll see in the project.
 ## Other To do's
 
 - Error messages from validation of inputs should be in red
-- Testing
+- Testing, mainly unit & functional comp testing
+- Migrate to MongoDB, before we can start using MongoDB, we need to set up a server for it. With Docker installed, we can make things easier for ourselves by running MongoDB in a Docker container. Doing so also allows us to have separate, clean MongoDB instances for our app by creating separate containers. 
 - Attachements fail sometimes, maybe because of the fact that im using a normal gmail account for delivery, SMTP, implementation, or lib issues, will probably be useful to provide a link to a presigned url that points to the newsletter for a limited amount if time
 - Mechanism to save error logs for the server
-- Since I'm fairly new to working with Vue, I will read up and create a more robust UI
-- Migrate to MongoDB
 - Set up husky and lint staged to add a pre commit hook to run linters and establish a commit message template
+- Since I'm fairly new to working with Vue, I will read up and create a more robust UI
+
+### Docker Considerations
+
+Due to time constraints and our current use of a mocked database, Docker has not been implemented in the current version of the application. This decision allows us to focus on core functionality and rapid development in the short term.
+
+However, if I had the bandwidth, I would containerize the application for improved scalability and deployment consistency. The future Docker implementation would involve separating the application into distinct images:
+
+1. Vue.js frontend application
+2. Node.js backend server
+3. MongoDB database
+
+This containerization strategy will offer several benefits:
+
+- Enhanced portability across different environments
+- Easier scaling of individual components
+- Improved isolation between services
+- Consistent development and production environments
+
+While our current setup works well for most development machines and our immediate needs, the planned Docker implementation will provide a more robust and scalable architecture as the project grows.
+
+For now, developers can easily set up and run the application using the existing mocked database setup. 
+
+This approach allows us to balance immediate development needs with future scalability and deployment considerations, ensuring we can adapt as the project evolves.
