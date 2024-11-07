@@ -77,37 +77,6 @@ export async function getS3Object(key) {
   }
 }
 
-export async function sendNewsletter(res) {
-  const subsList = readJsonAndParse("./mockedDB/collections/emails.json")
-  const staleNewsletters = readJsonAndParse(
-    "./mockedDB/collections/newsletters.json",
-  )
-
-  if (subsList.length === 0 || staleNewsletters.length === 0) {
-    return res.status(500).send("There are no subscribers or newsletters yet")
-  }
-
-  const s3Object = await getS3Object(
-    staleNewsletters[staleNewsletters.length - 1].name,
-  )
-
-  if (!s3Object) {
-    return res.status(500).send("Error while retrieving the latest newsletter")
-  }
-
-  const failures = sendEmail(subsList, s3Object)
-
-  if (failures.failRejectCounter > 0 && failures.failRejectCounter !== subsList.length) {
-    /* eslint-disable no-console */
-    console.log("unreachableSubs: ", failures.unreachableSubs)
-    return res.status(200).send("Some Newsletters sent successfully")
-  } else if (failures.failRejectCounter === subsList.length) {
-    res.status(500).send("Error sending Newsletters")
-  } else if (failures.failRejectCounter === 0) {
-    return res.status(200).send("All Newsletters sent successfully")
-  }
-}
-
 export function sendEmail(subsList, s3Object) {
   const date = new Date()
   const subjectDate = date.toLocaleDateString("en-US", {
