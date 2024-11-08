@@ -112,13 +112,13 @@ Multer is a body parsing middleware that handles content type multipart/form-dat
 Switch to your project directory and clone the project to your computer
 
 ```bash
-$ git clone https://github.com/8x8-web/8x8-site-redesign.git
+git clone https://github.com/LuisAguilarPena/awesome-newsletter.git
 ```
 
 ### Move into the Project Directory
 
 ```bash
-$ cd 8x8-site-redesign
+cd awesome-newsletter
 ```
 
 ### Install the Required Node Modules
